@@ -7,16 +7,21 @@ export default function AuthPage() {
   const { login, register } = useAuth();
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [name, setName] = useState('');
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
     setError(''); setLoading(true);
     try {
-      if (mode === 'login') await login(email, password);
-      else await register(name, email, password);
+      if (mode === 'login') {
+        await login(email, password);
+      } else {
+        await register(name, username, email, password, confirmPassword);
+      }
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Something went wrong');
     } finally { setLoading(false); }
@@ -44,23 +49,38 @@ export default function AuthPage() {
           </p>
 
           {mode === 'register' && (
-            <div className="mb-4">
-              <label className="label">Full Name</label>
-              <input className="input" placeholder="John Doe" value={name}
-                onChange={e => setName(e.target.value)} />
-            </div>
+            <>
+              <div className="mb-4">
+                <label className="label">Full Name</label>
+                <input className="input" placeholder="John Doe" value={name}
+                  onChange={e => setName(e.target.value)} />
+              </div>
+              <div className="mb-4">
+                <label className="label">Username</label>
+                <input className="input" placeholder="siddhant123" value={username}
+                  onChange={e => setUsername(e.target.value)} />
+              </div>
+            </>
           )}
           <div className="mb-4">
             <label className="label">Email</label>
             <input className="input" type="email" placeholder="you@example.com" value={email}
               onChange={e => setEmail(e.target.value)} />
           </div>
-          <div className="mb-6">
+          <div className="mb-4">
             <label className="label">Password</label>
             <input className="input" type="password" placeholder="••••••••" value={password}
               onChange={e => setPassword(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleSubmit()} />
           </div>
+          {mode === 'register' && (
+            <div className="mb-6">
+              <label className="label">Confirm Password</label>
+              <input className="input" type="password" placeholder="••••••••" value={confirmPassword}
+                onChange={e => setConfirmPassword(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleSubmit()} />
+            </div>
+          )}
 
           {error && (
             <div className="mb-4 px-4 py-3 bg-coral-50 border border-coral-200 text-coral-700 rounded-xl text-sm">
