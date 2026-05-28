@@ -1,10 +1,9 @@
-import { PrismaClient } from '@prisma/client';
+import 'dotenv/config'
+import { defineConfig, env } from 'prisma/config'
 
-declare global {
-  // eslint-disable-next-line no-var
-  var prisma: PrismaClient | undefined;
-}
-
-export const prisma = global.prisma || new PrismaClient({ log: ['error'] });
-
-if (process.env.NODE_ENV !== 'production') global.prisma = prisma;
+export default defineConfig({
+  schema: 'prisma/schema.prisma',
+  datasource: {
+    url: env('DATABASE_URL'),
+  },
+})
