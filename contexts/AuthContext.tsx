@@ -1,11 +1,11 @@
 'use client';
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
-interface AuthUser { id: string; name: string; email: string; }
+interface AuthUser { id: string; name: string; username: string; email: string; }
 interface AuthCtx {
   user: AuthUser | null; loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
+  login: (identifier: string, password: string) => Promise<void>;
+  register: (name: string, username: string, email: string, password: string, confirmPassword: string) => Promise<string>;
   logout: () => Promise<void>;
 }
 
@@ -25,24 +25,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => { fetchMe(); }, [fetchMe]);
 
-  const login = async (email: string, password: string) => {
+  const login = async (identifier: string, password: string) => {
     const res = await fetch('/api/auth/login', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ identifier, password }),
     });
     const d = await res.json();
     if (!res.ok) throw new Error(d.error || 'Login failed');
     setUser(d.user);
   };
 
-  const register = async (name: string, email: string, password: string) => {
+  const register = async (name: string, username: string, email: string, password: string, confirmPassword: string) => {
     const res = await fetch('/api/auth/register', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, password }),
+      body: JSON.stringify({ name, username, email, password, confirmPassword }),
     });
     const d = await res.json();
     if (!res.ok) throw new Error(d.error || 'Registration failed');
-    setUser(d.user);
+    return d.message || 'Registration successful.';
   };
 
   const logout = async () => {

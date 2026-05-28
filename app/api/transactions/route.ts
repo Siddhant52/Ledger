@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getSession } from '@/lib/auth';
+import { ACCESS_TOKEN_COOKIE, ACCESS_TOKEN_MAX_AGE, authCookieOptions, getSessionFromCookies } from '@/lib/auth';
 
 export async function GET(req: NextRequest) {
   try {
-    const user = await getSession();
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const session = await getSessionFromCookies();
+    if (!session.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { searchParams } = new URL(req.url);
     const type = searchParams.get('type');
@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
     const dateTo = searchParams.get('dateTo');
     const search = searchParams.get('search');
 
-    const where: Record<string, unknown> = { userId: user.id };
+    const where: Record<string, unknown> = { userId: session.user.id };
     if (type && type !== 'all') where.type = type;
     if (category && category !== 'all') where.category = category;
     if (search) where.description = { contains: search, mode: 'insensitive' };
@@ -29,7 +29,11 @@ export async function GET(req: NextRequest) {
       orderBy: { date: 'desc' },
     });
 
-    return NextResponse.json({ transactions });
+    const res = NextResponse.json({ transactions });
+    if (session.accessToken) {
+      res.cookies.set(ACCESS_TOKEN_COOKIE, session.accessToken, authCookieOptions(ACCESS_TOKEN_MAX_AGE));
+    }
+    return res;
   } catch (e) {
     console.error('GET transactions error:', e);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
@@ -38,8 +42,8 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const user = await getSession();
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const session = await getSessionFromCookies();
+    if (!session.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { type, amount, category, description, date } = await req.json();
     if (!type || !amount || !category || !description || !date)
@@ -47,7 +51,7 @@ export async function POST(req: NextRequest) {
 
     const transaction = await prisma.transaction.create({
       data: {
-        userId: user.id,
+        userId: session.user.id,
         type,
         amount: parseFloat(amount),
         category,
@@ -56,7 +60,11 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    return NextResponse.json({ transaction }, { status: 201 });
+    const res = NextResponse.json({ transaction }, { status: 201 });
+    if (session.accessToken) {
+      res.cookies.set(ACCESS_TOKEN_COOKIE, session.accessToken, authCookieOptions(ACCESS_TOKEN_MAX_AGE));
+    }
+    return res;
   } catch (e) {
     console.error('POST transaction error:', e);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
